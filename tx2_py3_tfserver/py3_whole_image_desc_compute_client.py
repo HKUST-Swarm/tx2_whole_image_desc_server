@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Sample Client to call the `whole_image_descriptor_compute_server`
 
@@ -22,6 +22,7 @@ try:
 
     # X = np.zeros( (100, 100), dtype=np.uint8 )
     X = cv2.resize( cv2.imread( THIS_PKG_BASE_PATH+'/resources/lena_color.jpg' ), (640,480) )
+    X = cv2.cvtColor(X, cv2.COLOR_BGR2GRAY)
     # X = cv2.resize( cv2.imread( THIS_PKG_BASE_PATH+'/resources/lena_color.jpg' ), (7,5) )
     print( 'X.shape=', X.shape )
     i = CvBridge().cv2_to_imgmsg( X )

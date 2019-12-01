@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # Tensorflow
 import tensorflow as tf
 from tensorflow.keras import backend as K
