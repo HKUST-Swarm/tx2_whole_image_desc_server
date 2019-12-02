@@ -1,0 +1,5 @@
+std_msgs/Time stamp
+int64 a
+---
+float32[] desc
+string model_type
