@@ -185,15 +185,10 @@ class ProtoBufferModelImageDescriptor:
                 does not match with the allocated GPU memory. Expecting an input image of \
                 size %dx%dx%d, but received : %s" %(self.im_rows, self.im_cols, self.im_chnls, str(cv_image.shape) )
 
-        # cv2.imshow( 'whole_image_descriptor_compute_server:imshow', cv_image.astype('uint8') )
-        # cv2.waitKey(10)
-        # cv2.imwrite( '/app/tmp/%s.jpg' %( str(req.ima.header.stamp) ), cv_image )
-
         ## Compute Descriptor
         start_time = time.time()
-        # i__image = np.expand_dims( cv_image.astype('float32'), 0 )
-        # i__image = (np.expand_dims( cv_image.astype('float32'), 0 ) - 128.)/255. [-0.5,0.5]
         i__image = (np.expand_dims( cv_image.astype('float32'), 0 ) - 128.)*2.0/255. #[-1,1]
+        print( 'Prepare in %4.4fms' %( 1000. *(time.time() - start_time_handle) ) )
 
         # u = self.model.predict( i__image )
         with self.sess.as_default():
