@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # Tensorflow
+from __future__ import print_function
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.python.platform import gfile

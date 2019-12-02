@@ -1,5 +1,5 @@
 sensor_msgs/Image ima
 int64 a
 ---
-float64[] desc
+float32[] desc
 string model_type
