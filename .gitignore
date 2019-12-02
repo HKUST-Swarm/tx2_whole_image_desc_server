@@ -8,3 +8,4 @@ build*
 *vgg16*.uff
 *mobilenet*.uff
 *.pyc
+tx2_py3_tfserver/.vscode/settings.json
