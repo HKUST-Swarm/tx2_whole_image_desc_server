@@ -153,8 +153,8 @@ class ProtoBufferModelImageDescriptor:
         if index >= 0:
             cv_image = imgmsg_to_cv2( self.queue[index] )
             del self.queue[0:index+1]
-            if cv_image.shape[0] != 480 or cv_image.shape[1] != 640:
-                cv_image = cv2.resize(cv_image, (640, 480))
+            if cv_image.shape[0] != 240 or cv_image.shape[1] != 320:
+                cv_image = cv2.resize(cv_image, (320, 240))
             return cv_image
         return None
 
