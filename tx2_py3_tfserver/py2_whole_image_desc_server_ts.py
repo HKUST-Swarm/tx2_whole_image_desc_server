@@ -55,10 +55,10 @@ class ProtoBufferModelImageDescriptor:
         # from keras.backend.tensorflow_backend import set_session
         # tf.set_random_seed(42)
         config = tf.ConfigProto()
-        # config.gpu_options.per_process_gpu_memory_fraction = 0.2
+        config.gpu_options.per_process_gpu_memory_fraction = 0.15
         config.gpu_options.visible_device_list = "0"
         config.intra_op_parallelism_threads=1
-        config.gpu_options.allow_growth=True
+        #config.gpu_options.allow_growth=True
         tf.keras.backend.set_session(tf.Session(config=config))
         tf.keras.backend.set_learning_phase(0)
 
