@@ -13,6 +13,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import os
 import time
+import sys
 
 # ROS
 import rospy
@@ -57,6 +58,7 @@ class ProtoBufferModelImageDescriptor:
         # config.gpu_options.per_process_gpu_memory_fraction = 0.2
         config.gpu_options.visible_device_list = "0"
         config.intra_op_parallelism_threads=1
+        config.gpu_options.allow_growth=True
         tf.keras.backend.set_session(tf.Session(config=config))
         tf.keras.backend.set_learning_phase(0)
 
@@ -225,69 +227,16 @@ if __name__ == '__main__':
     fs_image_height = -1
     fs_image_chnls = 1
 
-    if True: # read from param `config_file`
-        if not rospy.has_param( '~config_file'):
-            print( 'FATAL...cannot find param ~config_file. This is needed to determine size of the input image to allocate GPU memory. If you do not specify the config_file, you need to atleast specify the nrows, ncols, nchnls' )
-            rospy.logerr( '[whole_image_descriptor_compute_server]FATAL...cannot find param ~config_file. This is needed to determine size of the input image to allocate GPU memory. If you do not specify the config_file, you need to atleast specify the nrows, ncols, nchnls' )
+    fs_image_height = rospy.get_param('~nrows')
+    fs_image_width = rospy.get_param('~ncols')
 
-            if ( rospy.has_param( '~nrows') and rospy.has_param( '~ncols') ):
-                print( tcol.OKGREEN, 'However, you seem to have set the parameters nrows and ncols, so will read those.', tcol.ENDC )
-            else:
-                quit()
-            # quit only if you cannot see nrows and ncols
-
-        else:
-            config_file = rospy.get_param('~config_file')
-            print( '++++++++\n++++++++ config_file: ', config_file )
-            if not os.path.isfile(config_file):
-                print( 'FATAL...cannot find config_file: ', config_file )
-                rospy.logerr( '[whole_image_descriptor_compute_server]FATAL...cannot find config_file: '+ config_file )
-                quit()
-
-
-            print( '++++++++ READ opencv-yaml file: ', config_file )
-            fs = cv2.FileStorage(config_file, cv2.FILE_STORAGE_READ)
-            fs_image_width = int(  fs.getNode( "image_width" ).real() )
-            fs_image_height = int( fs.getNode( "image_height" ).real() )
-            print( '++++++++ opencv-yaml:: image_width=', fs_image_width, '   image_height=', fs_image_height )
-            print( '++++++++' )
-
-
-    ##
-    ## Load nrows and ncols directly as config
-    ##
-    if True:  # read from param `nrows` and `ncols`
-        if fs_image_width < 0 :
-            if ( not rospy.has_param( '~nrows') or not rospy.has_param( '~ncols') or not rospy.has_param( '~nchnls') ):
-                print( 'FATAL...cannot find param either of ~nrows, ~ncols, ~nchnls. This is needed to determine size of the input image to allocate GPU memory' )
-                rospy.logerr( '[whole_image_descriptor_compute_server] FATAL...cannot find param either of ~nrows, ~ncols, nchnls. This is needed to determine size of the input image to allocate GPU memory' )
-                quit()
-            else:
-                fs_image_height = rospy.get_param('~nrows')
-                fs_image_width = rospy.get_param('~ncols')
-                fs_image_chnls = rospy.get_param('~nchnls')
-
-                print ( '~~~~~~~~~~~~~~~~' )
-                print ( '~nrows = ', fs_image_height, '\t~ncols = ', fs_image_width, '\t~nchnls = ', fs_image_chnls )
-                print ( '~~~~~~~~~~~~~~~~' )
-
-
-    ##
-    ## Load Channels
-    ##
-    if True:
-        if not rospy.has_param( '~nchnls' ):
-            rospy.logerr( "[whole_image_descriptor_compute_server] FATAL....cannot file cmd param nchnls.")
-            quit()
-        else:
-            fs_image_chnls = rospy.get_param('~nchnls')
+    print ( '~~~~~~~~~~~~~~~~' )
+    print ( '~nrows = ', fs_image_height, '\t~ncols = ', fs_image_width, '\t~nchnls = ', fs_image_chnls )
+    print ( '~~~~~~~~~~~~~~~~' )
 
 
     print( '~~~@@@@ OK...' )
-    ##
-    ## Start Server
-    ##
-    # frozen_protobuf_file = '/models.keras/Apr2019/gray_conv6_K16Ghost1__centeredinput/core_model.%d.keras' %(500)
+    sys.stdout.flush()
     if rospy.has_param( '~frozen_protobuf_file'):
         frozen_protobuf_file = rospy.get_param('~frozen_protobuf_file')
     else:
