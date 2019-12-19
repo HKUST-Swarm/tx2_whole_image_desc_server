@@ -25,7 +25,7 @@ from tx2_whole_image_desc_server.srv import WholeImageDescriptorComputeTS, Whole
 from TerminalColors import bcolors
 tcol = bcolors()
 
-QUEUE_SIZE = 10
+QUEUE_SIZE = 20
 
 
 def imgmsg_to_cv2( msg ):
@@ -158,6 +158,7 @@ class ProtoBufferModelImageDescriptor:
             if cv_image.shape[0] != 240 or cv_image.shape[1] != 320:
                 cv_image = cv2.resize(cv_image, (320, 240))
             return cv_image
+        rospy.logwarn("Finding failed, dt is {:3.2f}".format((self.queue[i].header.stamp.to_sec() - stamp.to_sec())*1000))
         return None
 
     def handle_req( self, req ):
@@ -166,12 +167,19 @@ class ProtoBufferModelImageDescriptor:
         """
         start_time_handle = time.time()
         stamp = req.stamp.data
-        cv_image = self.pop_image_by_timestamp(stamp)
+
+        for i in range(5):
+            cv_image = self.pop_image_by_timestamp(stamp)
+            if cv_image is None:
+                rospy.logwarn("Unable to find such image, waiting image 10ms...")
+                rospy.sleep(0.01)
+            else:
+                break
         if cv_image is None:
             rospy.logerr("Unable to find such image")
             result = WholeImageDescriptorComputeTSResponse()
             return result
-
+        
         print( '[ProtoBufferModelImageDescriptor Handle Request#%5d] cv_image.shape' %(self.n_request_processed), cv_image.shape, '\ta=', req.a, '\tt=', stamp )
         if len(cv_image.shape)==2:
             # print 'Input dimensions are NxM but I am expecting it to be NxMxC, so np.expand_dims'
