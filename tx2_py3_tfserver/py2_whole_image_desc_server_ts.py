@@ -25,7 +25,7 @@ from tx2_whole_image_desc_server.srv import WholeImageDescriptorComputeTS, Whole
 from TerminalColors import bcolors
 tcol = bcolors()
 
-QUEUE_SIZE = 20
+QUEUE_SIZE = 200
 
 
 def imgmsg_to_cv2( msg ):
@@ -146,7 +146,7 @@ class ProtoBufferModelImageDescriptor:
             del self.queue[0]
 
     def pop_image_by_timestamp(self, stamp):
-        print("Find...", stamp, "queue_size", len(self.queue))
+        print("Find...", stamp, "queue_size", len(self.queue), "lag is", (self.queue[-1].header.stamp.to_sec() - stamp.to_sec())*1000, "ms")
         index = -1
         for i in range(len(self.queue)):
             if math.fabs(self.queue[i].header.stamp.to_sec() - stamp.to_sec()) < 0.001:
@@ -158,7 +158,10 @@ class ProtoBufferModelImageDescriptor:
             if cv_image.shape[0] != 240 or cv_image.shape[1] != 320:
                 cv_image = cv2.resize(cv_image, (320, 240))
             return cv_image
-        rospy.logwarn("Finding failed, dt is {:3.2f}".format((self.queue[i].header.stamp.to_sec() - stamp.to_sec())*1000))
+            dt_last = (self.queue[-1].header.stamp.to_sec() - stamp.to_sec()
+        if dt_last < 0:
+            return 1
+        rospy.logwarn("Finding failed, dt is {:3.2f}ms; If this number > 0 means swarm_loop is too slow".format()*1000))
         return None
 
     def handle_req( self, req ):
@@ -168,18 +171,27 @@ class ProtoBufferModelImageDescriptor:
         start_time_handle = time.time()
         stamp = req.stamp.data
 
-        for i in range(5):
+        cv_image = None
+        for i in range(3):
             cv_image = self.pop_image_by_timestamp(stamp)
             if cv_image is None:
-                rospy.logwarn("Unable to find such image, waiting image 10ms...")
-                rospy.sleep(0.01)
+                rospy.logerr("Unable find image swarm loop too slow!")
+                result = WholeImageDescriptorComputeTSResponse()
+                return result
             else:
-                break
-        if cv_image is None:
+                if cv_image == 1:
+                    print("Wait 0.02 sec for image come in and re find image")
+                    rospy.sleep(0.02)
+                    cv_image = self.pop_image_by_timestamp(stamp)
+                else:
+                    break
+
+        if cv_image is None or cv_image == 1:
             rospy.logerr("Unable to find such image")
             result = WholeImageDescriptorComputeTSResponse()
             return result
-        
+
+
         print( '[ProtoBufferModelImageDescriptor Handle Request#%5d] cv_image.shape' %(self.n_request_processed), cv_image.shape, '\ta=', req.a, '\tt=', stamp )
         if len(cv_image.shape)==2:
             # print 'Input dimensions are NxM but I am expecting it to be NxMxC, so np.expand_dims'
@@ -254,7 +266,7 @@ if __name__ == '__main__':
     gpu_netvlad = ProtoBufferModelImageDescriptor( frozen_protobuf_file=frozen_protobuf_file, im_rows=fs_image_height, im_cols=fs_image_width, im_chnls=fs_image_chnls )
 
     s = rospy.Service( 'whole_image_descriptor_compute_ts', WholeImageDescriptorComputeTS, gpu_netvlad.handle_req)
-    sub = rospy.Subscriber("left_camera", Image, gpu_netvlad.on_image_recv, queue_size=5, tcp_nodelay=True)
+    sub = rospy.Subscriber("left_camera", Image, gpu_netvlad.on_image_recv, queue_size=20, tcp_nodelay=True)
     print (tcol.OKGREEN )
     print( '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     print( '+++  whole_image_descriptor_compute_server is running +++' )
