@@ -157,12 +157,16 @@ class ProtoBufferModelImageDescriptor:
             del self.queue[0:index+1]
             if cv_image.shape[0] != 240 or cv_image.shape[1] != 320:
                 cv_image = cv2.resize(cv_image, (320, 240))
-            return cv_image
-            dt_last = (self.queue[-1].header.stamp.to_sec() - stamp.to_sec()
+            return cv_image, 0
+        
+        dt_last = self.queue[-1].header.stamp.to_sec() - stamp.to_sec()
+
+        rospy.logwarn("Finding failed, dt is {:3.2f}ms; If this number > 0 means swarm_loop is too slow".format(dt_last)*1000)
+
         if dt_last < 0:
-            return 1
-        rospy.logwarn("Finding failed, dt is {:3.2f}ms; If this number > 0 means swarm_loop is too slow".format()*1000))
-        return None
+            return None, 1
+
+        return None, 0
 
     def handle_req( self, req ):
         """ The received image from CV bridge has to be [0,255]. In function makes it to
@@ -173,26 +177,26 @@ class ProtoBufferModelImageDescriptor:
 
         cv_image = None
         for i in range(3):
-            cv_image = self.pop_image_by_timestamp(stamp)
-            if cv_image is None:
+            cv_image, fail = self.pop_image_by_timestamp(stamp)
+            if cv_image is None and fail == 0:
                 rospy.logerr("Unable find image swarm loop too slow!")
                 result = WholeImageDescriptorComputeTSResponse()
                 return result
             else:
-                if cv_image == 1:
+                if fail == 1:
                     print("Wait 0.02 sec for image come in and re find image")
                     rospy.sleep(0.02)
                     cv_image = self.pop_image_by_timestamp(stamp)
                 else:
                     break
 
-        if cv_image is None or cv_image == 1:
+        if cv_image is None:
             rospy.logerr("Unable to find such image")
             result = WholeImageDescriptorComputeTSResponse()
             return result
 
 
-        print( '[ProtoBufferModelImageDescriptor Handle Request#%5d] cv_image.shape' %(self.n_request_processed), cv_image.shape, '\ta=', req.a, '\tt=', stamp )
+        # print( '[ProtoBufferModelImageDescriptor Handle Request#%5d] cv_image.shape' %(self.n_request_processed), cv_image.shape, '\ta=', req.a, '\tt=', stamp )
         if len(cv_image.shape)==2:
             # print 'Input dimensions are NxM but I am expecting it to be NxMxC, so np.expand_dims'
             cv_image = np.expand_dims( cv_image, -1 )
@@ -219,13 +223,13 @@ class ProtoBufferModelImageDescriptor:
                 u = self.sess.run(self.output_tensor, {'import/input_1:0': i__image})
 
         print( tcol.HEADER, 'Descriptor Computed in %4.4fms' %( 1000. *(time.time() - start_time) ), tcol.ENDC )
-        print( '\tinput_image.shape=', cv_image.shape, )
-        print( '\tinput_image dtype=', cv_image.dtype )
-        print( tcol.OKBLUE, '\tinput image (to neuralnet) minmax=', np.min( i__image ), np.max( i__image ), tcol.ENDC )
-        print( '\tdesc.shape=', u.shape, )
-        print( '\tdesc minmax=', np.min( u ), np.max( u ), )
-        print( '\tnorm=', np.linalg.norm(u[0]) )
-        print( '\tmodel_type=', self.model_type )
+        # print( '\tinput_image.shape=', cv_image.shape, )
+        # print( '\tinput_image dtype=', cv_image.dtype )
+        # print( tcol.OKBLUE, '\tinput image (to neuralnet) minmax=', np.min( i__image ), np.max( i__image ), tcol.ENDC )
+        # print( '\tdesc.shape=', u.shape, )
+        # print( '\tdesc minmax=', np.min( u ), np.max( u ), )
+        # print( '\tnorm=', np.linalg.norm(u[0]) )
+        # print( '\tmodel_type=', self.model_type )
 
 
 
